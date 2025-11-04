@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router";
 import ParticipantCard from "@components/common/participant-card/ParticipantCard";
 import ParticipantDetailsModal from "@components/common/modals/participant-details-modal/ParticipantDetailsModal";
+import DeleteUserConfirmationModal from "@components/common/modals/delete-user-confirmation-modal/DeleteUserConfirmationModal";
 import type { Participant } from "@types/api";
 import {
   MAX_PARTICIPANTS_NUMBER,
@@ -10,10 +11,16 @@ import {
 import { type ParticipantsListProps, type PersonalInformation } from "./types";
 import "./ParticipantsList.scss";
 
-const ParticipantsList = ({ participants }: ParticipantsListProps) => {
+const ParticipantsList = ({
+  participants,
+  onDeleteUser,
+}: ParticipantsListProps) => {
   const { userCode } = useParams();
   const [selectedParticipant, setSelectedParticipant] =
     useState<PersonalInformation | null>(null);
+  const [deletedParticipant, setDeletedParticipant] = useState<{
+    participant: Participant;
+  } | null>(null);
 
   const admin = participants?.find((participant) => participant?.isAdmin);
   const restParticipants = participants?.filter(
@@ -33,8 +40,18 @@ const ParticipantsList = ({ participants }: ParticipantsListProps) => {
     };
     setSelectedParticipant(personalInfoData);
   };
+  const handleDeleteButtonClick = (participant: Participant) => {
+    setDeletedParticipant({ participant: participant });
+  };
 
   const handleModalClose = () => setSelectedParticipant(null);
+  const handleDeleteModalClose = () => setDeletedParticipant(null);
+  const handleConfirmDelete = async () => {
+    if (deletedParticipant?.participant.id) {
+      await onDeleteUser(deletedParticipant.participant.id);
+      setDeletedParticipant(null);
+    }
+  };
 
   return (
     <div
@@ -82,6 +99,11 @@ const ParticipantsList = ({ participants }: ParticipantsListProps) => {
                   ? () => handleInfoButtonClick(user)
                   : undefined
               }
+              onDeleteButtonClick={
+                userCode === admin?.userCode && userCode !== user?.userCode
+                  ? () => handleDeleteButtonClick(user)
+                  : undefined
+              }
             />
           ))}
         </div>
@@ -91,6 +113,14 @@ const ParticipantsList = ({ participants }: ParticipantsListProps) => {
             isOpen={!!selectedParticipant}
             onClose={handleModalClose}
             personalInfoData={selectedParticipant}
+          />
+        ) : null}
+        {deletedParticipant ? (
+          <DeleteUserConfirmationModal
+            isOpen={!!deletedParticipant}
+            onClose={handleDeleteModalClose}
+            onConfirm={handleConfirmDelete}
+            participant={deletedParticipant.participant}
           />
         ) : null}
       </div>

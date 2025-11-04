@@ -4,4 +4,5 @@ export interface RoomPageContentProps {
   participants: GetParticipantsResponse;
   roomDetails: GetRoomResponse;
   onDrawNames: () => void;
+  onDeleteUser: (id: number) => Promise<void>;
 }
