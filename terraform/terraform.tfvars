@@ -82,5 +82,5 @@ db_subnet_group_name = "rds-private-subnet-group"
 # SSL variables
 ################################################################################
 
-domain_name = "epam-marathon.pp.ua"
+domain_name = "marathon-lazurko.pp.ua"
 certificate_arn = "arn:aws:acm:eu-central-1:498628474514:certificate/b17040ab-9747-42be-918e-b9c66ff021ea"
