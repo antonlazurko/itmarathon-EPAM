@@ -57,8 +57,9 @@
     right: 44px;
   }
 
-  &__back-button {
+  &__footer {
     margin-top: 48px;
-    text-align: right;
+    display: flex;
+    justify-content: space-between;
   }
 }

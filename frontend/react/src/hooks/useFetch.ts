@@ -37,12 +37,15 @@ export function useFetch<T = unknown, N = undefined>(
         onSuccess(result);
       }
     } catch (error) {
-      if ((error as Error).name !== "AbortError") {
+      // Don't set error state or show error toast for cancelled requests
+      if (
+        (error as Error).name !== "AbortError" &&
+        !(error instanceof Error && error.message.includes("canceled"))
+      ) {
         setIsError(true);
-      }
-
-      if (onError) {
-        onError(error as Error);
+        if (onError) {
+          onError(error as Error);
+        }
       }
     } finally {
       setIsLoading(false);

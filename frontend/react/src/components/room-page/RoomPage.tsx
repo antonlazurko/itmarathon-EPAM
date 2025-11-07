@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import type {
   GetParticipantsResponse,
@@ -16,6 +16,7 @@ import "./RoomPage.scss";
 const RoomPage = () => {
   const { showToast } = useToaster();
   const { userCode } = useParams();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     document.title = ROOM_PAGE_TITLE;
@@ -50,6 +51,33 @@ const RoomPage = () => {
     },
   });
 
+  const handleDeleteUser = async (id: number) => {
+    setIsDeleting(true);
+    try {
+      const deleteUrl = `${BASE_API_URL}/api/users/${id}?userCode=${userCode}`;
+
+      const response = await fetch(deleteUrl, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete user. Status: ${response.status}`);
+      }
+
+      showToast("Participant was successfully removed", "success", "large");
+      fetchParticipants();
+    } catch (error) {
+      showToast(
+        `Failed to remove participant. Try again. ${error?.toString()}`,
+        "error",
+        "large",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const { fetchData: fetchRandomize, isLoading: isRandomizing } =
     useFetch<DrawRoomResponse>(
       {
@@ -73,7 +101,10 @@ const RoomPage = () => {
     );
 
   const isLoading =
-    isLoadingRoomDetails || isLoadingParticipants || isRandomizing;
+    isLoadingRoomDetails ||
+    isLoadingParticipants ||
+    isRandomizing ||
+    isDeleting;
 
   if (!userCode) {
     return null;
@@ -87,6 +118,7 @@ const RoomPage = () => {
         participants={participants ?? []}
         roomDetails={roomDetails ?? ({} as GetRoomResponse)}
         onDrawNames={() => fetchRandomize()}
+        onDeleteUser={handleDeleteUser}
       />
     </main>
   );
