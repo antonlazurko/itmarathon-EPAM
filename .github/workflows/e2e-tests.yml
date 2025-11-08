@@ -52,10 +52,26 @@ jobs:
         working-directory: testautomation/SecretNick.TestAutomation/Tests
         run: dotnet build Tests.csproj -c ${{ matrix.config }} --no-restore
 
-      - name: Install Playwright browsers (Post-build step)
-        working-directory: testautomation/SecretNick.TestAutomation/Tests
+      - name: Install Playwright browsers (Reliable method)
         run: |
-          ./bin/${{ matrix.config }}/net9.0/playwright.sh install chromium
+          PROJECT_DIR="testautomation/SecretNick.TestAutomation/Tests"
+          CONFIG_DIR="${{ matrix.config }}"
+          TARGET_FRAMEWORK="net9.0" # Проверьте, что это соответствует вашему .csproj
+          PLAYWRIGHT_SCRIPT="$PROJECT_DIR/bin/$CONFIG_DIR/$TARGET_FRAMEWORK/playwright.sh"
+
+          echo "Looking for Playwright script at: $PLAYWRIGHT_SCRIPT"
+
+          if [ -f "$PLAYWRIGHT_SCRIPT" ]; then
+            echo "Script found. Running installation..."
+            # Запуск скрипта через bash для совместимости с Ubuntu
+            bash "$PLAYWRIGHT_SCRIPT" install chromium
+          else
+            echo "::error file=$PLAYWRIGHT_SCRIPT::Playwright script was NOT FOUND. Check build output and TargetFramework."
+            echo "---"
+            echo "Debugging: Listing files in $PROJECT_DIR/bin/$CONFIG_DIR/$TARGET_FRAMEWORK/"
+            ls -al "$PROJECT_DIR/bin/$CONFIG_DIR/$TARGET_FRAMEWORK/"
+            exit 1 # Критическая ошибка: останавливаем рабочий процесс
+          fi
 
       - name: Run E2E tests
         working-directory: testautomation/SecretNick.TestAutomation/Tests
