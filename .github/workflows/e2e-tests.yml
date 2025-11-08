@@ -52,9 +52,13 @@ jobs:
         working-directory: testautomation/SecretNick.TestAutomation/Tests
         run: dotnet build Tests.csproj -c ${{ matrix.config }} --no-restore
 
+      - name: Install Playwright CLI tool globally
+        run: |
+          dotnet tool install --global Microsoft.Playwright.CLI --version 1.55.0
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
       - name: Install Playwright browsers
-        working-directory: testautomation/SecretNick.TestAutomation/Tests
-        run: dotnet msbuild Tests.csproj /t:PlaywrightInstall /p:Configuration=${{ matrix.config }}
+        run: playwright install chromium
 
       - name: Run E2E tests
         working-directory: testautomation/SecretNick.TestAutomation/Tests
