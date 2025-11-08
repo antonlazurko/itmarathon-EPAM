@@ -105,7 +105,7 @@ Rule: User Deletion
 
   @positive
   Scenario: Admin deletes multiple users from the room
-    Given I have a room with multiple users
+    Given I have a room with 5 users
     And there is a user to delete in the room
     When I delete the user as admin
     And there is a user to delete in the room
