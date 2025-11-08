@@ -52,17 +52,9 @@ jobs:
         working-directory: testautomation/SecretNick.TestAutomation/Tests
         run: dotnet build Tests.csproj -c ${{ matrix.config }} --no-restore
 
-      - name: Create dotnet tool manifest
-        working-directory: testautomation/SecretNick.TestAutomation/Tests
-        run: dotnet new tool-manifest || echo "Tool manifest already exists"
-
-      - name: Install Playwright CLI
-        working-directory: testautomation/SecretNick.TestAutomation/Tests
-        run: dotnet tool install Microsoft.Playwright.CLI --version 1.55.0 || echo "Tool already installed"
-
       - name: Install Playwright browsers
         working-directory: testautomation/SecretNick.TestAutomation/Tests
-        run: dotnet tool run playwright install chromium
+        run: dotnet msbuild Tests.csproj /t:PlaywrightInstall /p:Configuration=${{ matrix.config }}
 
       - name: Run E2E tests
         working-directory: testautomation/SecretNick.TestAutomation/Tests
