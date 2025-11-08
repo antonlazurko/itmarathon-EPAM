@@ -9,6 +9,8 @@ var app = builder
     .Build()
     .ConfigureApplication();
 
+app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
+
 try
 {
     Log.Information("Starting host");
