@@ -1,4 +1,5 @@
-﻿using Microsoft.Playwright;
+﻿using System.Linq;
+using Microsoft.Playwright;
 using Reqnroll;
 using Shouldly;
 using Tests.Api.Models.Responses;
@@ -293,6 +294,108 @@ namespace Tests.Ui.Steps
                 var isDisabled = await GetBasePage().IsButtonDisabledAsync(buttonText);
                 isDisabled.ShouldBeTrue($"Button '{buttonText}' should be disabled");
             }
+        }
+
+        [Then("I should see delete button for participant {string}")]
+        public async Task ThenIShouldSeeDeleteButtonForParticipant(string participantFullName)
+        {
+            var isVisible = await GetRoomPage().IsDeleteButtonVisibleForParticipantAsync(participantFullName);
+            isVisible.ShouldBeTrue($"Delete button should be visible for participant {participantFullName}");
+        }
+
+        [Then("I should not see delete button for participant {string}")]
+        public async Task ThenIShouldNotSeeDeleteButtonForParticipant(string participantFullName)
+        {
+            var isVisible = await GetRoomPage().IsDeleteButtonVisibleForParticipantAsync(participantFullName);
+            isVisible.ShouldBeFalse($"Delete button should not be visible for participant {participantFullName}");
+        }
+
+        [Then("I should see delete confirmation modal")]
+        public async Task ThenIShouldSeeDeleteConfirmationModal()
+        {
+            var isVisible = await GetRoomPage().IsDeleteConfirmationModalVisibleAsync();
+            isVisible.ShouldBeTrue("Delete confirmation modal should be visible");
+        }
+
+        [Then("I should not see delete confirmation modal")]
+        public async Task ThenIShouldNotSeeDeleteConfirmationModal()
+        {
+            var isVisible = await GetRoomPage().IsDeleteConfirmationModalVisibleAsync();
+            isVisible.ShouldBeFalse("Delete confirmation modal should not be visible");
+        }
+
+        [Then("I should see success message {string}")]
+        public async Task ThenIShouldSeeSuccessMessage(string message)
+        {
+            var isVisible = await GetRoomPage().IsSuccessMessageVisibleAsync(message);
+            isVisible.ShouldBeTrue($"Success message '{message}' should be visible");
+        }
+
+        [Then("participant {string} should not be visible")]
+        public async Task ThenParticipantShouldNotBeVisible(string participantFullName)
+        {
+            await GetRoomPage().WaitForParticipantToDisappearAsync(participantFullName);
+            var isVisible = await GetRoomPage().IsParticipantVisibleAsync(participantFullName);
+            isVisible.ShouldBeFalse($"Participant {participantFullName} should not be visible");
+        }
+
+        [Then("participant {string} should be visible")]
+        public async Task ThenParticipantShouldBeVisible(string participantFullName)
+        {
+            var isVisible = await GetRoomPage().IsParticipantVisibleAsync(participantFullName);
+            isVisible.ShouldBeTrue($"Participant {participantFullName} should be visible");
+        }
+
+        [Then("I should see delete button for the first non-admin participant")]
+        public async Task ThenIShouldSeeDeleteButtonForTheFirstNonAdminParticipant()
+        {
+            var participantNames = scenarioContext.Get<List<string>>("ParticipantNames");
+            var adminName = scenarioContext.Get<string>("AdminName");
+            var firstNonAdmin = participantNames.FirstOrDefault(p => p != adminName);
+            
+            if (firstNonAdmin == null)
+                throw new InvalidOperationException("No non-admin participant found");
+            
+            scenarioContext.Set(firstNonAdmin, "ParticipantToDelete");
+            var isVisible = await GetRoomPage().IsDeleteButtonVisibleForParticipantAsync(firstNonAdmin);
+            isVisible.ShouldBeTrue($"Delete button should be visible for participant {firstNonAdmin}");
+        }
+
+        [Then("I should not see delete button for the admin participant")]
+        public async Task ThenIShouldNotSeeDeleteButtonForTheAdminParticipant()
+        {
+            var adminName = scenarioContext.Get<string>("AdminName");
+            var isVisible = await GetRoomPage().IsDeleteButtonVisibleForParticipantAsync(adminName);
+            isVisible.ShouldBeFalse($"Delete button should not be visible for admin {adminName}");
+        }
+
+        [Then("I should not see delete button for any participant")]
+        public async Task ThenIShouldNotSeeDeleteButtonForAnyParticipant()
+        {
+            var participantNames = scenarioContext.Get<List<string>>("ParticipantNames");
+            
+            foreach (var participantName in participantNames)
+            {
+                var isVisible = await GetRoomPage().IsDeleteButtonVisibleForParticipantAsync(participantName);
+                isVisible.ShouldBeFalse($"Delete button should not be visible for participant {participantName}");
+            }
+        }
+
+        [Then("the first non-admin participant should not be visible")]
+        public async Task ThenTheFirstNonAdminParticipantShouldNotBeVisible()
+        {
+            var participantToDelete = scenarioContext.Get<string>("ParticipantToDelete");
+            await GetRoomPage().WaitForParticipantToDisappearAsync(participantToDelete);
+            var isVisible = await GetRoomPage().IsParticipantVisibleAsync(participantToDelete);
+            isVisible.ShouldBeFalse($"Participant {participantToDelete} should not be visible");
+        }
+
+        [Then("the first non-admin participant should be visible")]
+        public async Task ThenTheFirstNonAdminParticipantShouldBeVisible()
+        {
+            var participantToDelete = scenarioContext.Get<string>("ParticipantToDelete");
+            var isVisible = await GetRoomPage().IsParticipantVisibleAsync(participantToDelete);
+            isVisible.ShouldBeTrue($"Participant {participantToDelete} should be visible");
         }
     }
 }

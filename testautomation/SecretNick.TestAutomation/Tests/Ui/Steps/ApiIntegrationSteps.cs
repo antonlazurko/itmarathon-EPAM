@@ -2,6 +2,7 @@
 using Shouldly;
 using Tests.Api.Clients;
 using Tests.Api.Models.Requests;
+using Tests.Api.Models.Responses;
 using Tests.Common.TestData;
 
 namespace Tests.Ui.Steps
@@ -56,6 +57,20 @@ namespace Tests.Ui.Steps
             }
 
             scenarioContext.Set(participantNames, "ParticipantNames");
+            
+            // Store admin name for UI tests
+            scenarioContext.Set($"{roomRequest.AdminUser.FirstName} {roomRequest.AdminUser.LastName}", "AdminName");
+        }
+
+        [Given("I am a regular user in the room")]
+        public async Task GivenIAmARegularUserInTheRoom()
+        {
+            var roomResponse = scenarioContext.Get<RoomCreationResponse>("RoomCreationResponse");
+            var userResponse = await userApiClient.CreateUserAsync(
+                roomResponse.Room.InvitationCode!,
+                TestDataGenerator.GenerateUser());
+            
+            scenarioContext.Set(userResponse.UserCode!, "RegularUserCode");
         }
 
         [When("I add {int} participants via API")]

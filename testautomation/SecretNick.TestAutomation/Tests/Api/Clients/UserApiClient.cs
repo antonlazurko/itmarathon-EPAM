@@ -73,5 +73,42 @@ namespace Tests.Api.Clients
                 user.FirstName, user.LastName);
             return user;
         }
+
+        public async Task DeleteUserAsync(long userId, string userCode)
+        {
+            var url = $"/api/users/{userId}?userCode={userCode}";
+            var requestInfo = $"DELETE {url}";
+
+            Log.Information("Deleting user via API: {RequestInfo}", requestInfo);
+
+            var response = await ApiContext.DeleteAsync(url);
+            await ValidateResponseAsync(response, 200, requestInfo);
+
+            Log.Information("User {UserId} deleted successfully", userId);
+        }
+
+        public async Task<(int StatusCode, string ResponseBody)> TryDeleteUserAsync(long userId, string userCode)
+        {
+            var url = $"/api/users/{userId}?userCode={userCode}";
+            var requestInfo = $"DELETE {url}";
+
+            Log.Information("Attempting to delete user via API: {RequestInfo}", requestInfo);
+
+            try
+            {
+                var response = await ApiContext.DeleteAsync(url);
+                var statusCode = response.Status;
+                var responseBody = await response.TextAsync();
+                
+                Log.Information("Delete user response status: {StatusCode}", statusCode);
+                return (statusCode, responseBody);
+            }
+            catch (ApiException ex)
+            {
+                Log.Warning("Delete user failed with status {StatusCode}: {Message}", 
+                    ex.ActualStatus, ex.ResponseBody);
+                return (ex.ActualStatus, ex.ResponseBody);
+            }
+        }
     }
 }

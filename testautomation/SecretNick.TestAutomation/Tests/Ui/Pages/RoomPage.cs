@@ -194,5 +194,118 @@ namespace Tests.Ui.Pages
         {
             return date.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
         }
+
+        public async Task<bool> IsDeleteButtonVisibleForParticipantAsync(string participantFullName)
+        {
+            // Check for delete button in participant card - React uses icon button with aria-label
+            var deleteButtonLocator = Page.Locator($"xpath=.//*[contains(@class,'item-card')][contains(.,'{participantFullName}')]//button[@aria-label='delete' or contains(@aria-label,'Delete')] | .//li[contains(.,'{participantFullName}')]//button[@aria-label='delete' or contains(@aria-label,'Delete')] | .//*[contains(.,'{participantFullName}')]//*[@class='copy-button']//button[contains(@aria-label,'delete')]");
+            
+            if (await deleteButtonLocator.CountAsync() > 0)
+            {
+                return await deleteButtonLocator.IsVisibleAsync();
+            }
+            
+            return false;
+        }
+
+        public async Task ClickDeleteButtonForParticipantAsync(string participantFullName)
+        {
+            var deleteButtonLocator = Page.Locator($"xpath=.//*[contains(@class,'item-card')][contains(.,'{participantFullName}')]//button[@aria-label='delete' or contains(@aria-label,'Delete')] | .//li[contains(.,'{participantFullName}')]//button[@aria-label='delete' or contains(@aria-label,'Delete')] | .//*[contains(.,'{participantFullName}')]//*[@class='copy-button']//button[contains(@aria-label,'delete')]");
+            
+            await deleteButtonLocator.WaitForAsync(new LocatorWaitForOptions 
+            { 
+                State = WaitForSelectorState.Visible,
+                Timeout = 5000
+            });
+            await deleteButtonLocator.ClickAsync();
+        }
+
+        public async Task<bool> IsDeleteConfirmationModalVisibleAsync()
+        {
+            var modalLocator = Page.Locator("xpath=.//h3[.='Remove Participant'] | .//*[contains(@class,'modal')][contains(.,'Remove Participant')]");
+            try
+            {
+                await modalLocator.WaitForAsync(new LocatorWaitForOptions
+                {
+                    State = WaitForSelectorState.Visible,
+                    Timeout = 3000
+                });
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<string> GetDeleteConfirmationModalTextAsync()
+        {
+            var modalTextLocator = Page.Locator("xpath=.//*[contains(@class,'modal')]//p[contains(.,'Are you sure')] | .//*[contains(@class,'modal__description')]");
+            return await modalTextLocator.First.TextContentAsync() ?? string.Empty;
+        }
+
+        public async Task ClickConfirmDeleteButtonAsync()
+        {
+            var confirmButtonLocator = Page.Locator("xpath=.//button[contains(text(),'Confirm')] | .//button[contains(@class,'confirm')]");
+            await confirmButtonLocator.WaitForAsync(new LocatorWaitForOptions 
+            { 
+                State = WaitForSelectorState.Visible,
+                Timeout = 5000
+            });
+            await confirmButtonLocator.ClickAsync();
+        }
+
+        public async Task ClickCancelDeleteButtonAsync()
+        {
+            var cancelButtonLocator = Page.Locator("xpath=.//button[contains(text(),'Cancel')] | .//button[contains(@class,'cancel')]");
+            await cancelButtonLocator.WaitForAsync(new LocatorWaitForOptions 
+            { 
+                State = WaitForSelectorState.Visible,
+                Timeout = 5000
+            });
+            await cancelButtonLocator.ClickAsync();
+        }
+
+        public async Task<bool> IsSuccessMessageVisibleAsync(string message)
+        {
+            var successMessageLocator = Page.Locator($"xpath=.//*[contains(text(),'{message}')] | .//*[contains(@class,'success')][contains(text(),'{message}')]");
+            try
+            {
+                await successMessageLocator.WaitForAsync(new LocatorWaitForOptions 
+                { 
+                    State = WaitForSelectorState.Visible,
+                    Timeout = 5000
+                });
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> IsParticipantVisibleAsync(string participantFullName)
+        {
+            var participantLocator = Page.Locator($"xpath=.//*[contains(@class,'item-card')][contains(.,'{participantFullName}')] | .//li[contains(.,'{participantFullName}')] | .//*[contains(@class,'participant')][contains(.,'{participantFullName}')]");
+            return await participantLocator.CountAsync() > 0;
+        }
+
+        public async Task WaitForParticipantToDisappearAsync(string participantFullName, int timeoutMs = 10000)
+        {
+            var participantLocator = Page.Locator($"xpath=.//*[contains(@class,'item-card')][contains(.,'{participantFullName}')] | .//li[contains(.,'{participantFullName}')]");
+            
+            try
+            {
+                await participantLocator.WaitForAsync(new LocatorWaitForOptions
+                {
+                    State = WaitForSelectorState.Hidden,
+                    Timeout = timeoutMs
+                });
+            }
+            catch
+            {
+                // Participant might already be gone or locator changed
+            }
+        }
     }
 }

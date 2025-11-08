@@ -2,6 +2,7 @@
 using Reqnroll;
 using Tests.Common.TestData;
 using Tests.Helpers;
+using System.Linq;
 
 namespace Tests.Ui.Steps
 {
@@ -150,6 +151,41 @@ namespace Tests.Ui.Steps
                     await GetCreateRoomPage().FillFieldAsync("Wish Link", wish.InfoLink);
                 }
             }
+        }
+
+        [When("I click delete button for participant {string}")]
+        public async Task WhenIClickDeleteButtonForParticipant(string participantFullName)
+        {
+            await GetRoomPage().ClickDeleteButtonForParticipantAsync(participantFullName);
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        }
+
+        [When("I confirm delete in the modal")]
+        public async Task WhenIConfirmDeleteInTheModal()
+        {
+            await GetRoomPage().ClickConfirmDeleteButtonAsync();
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        }
+
+        [When("I cancel delete in the modal")]
+        public async Task WhenICancelDeleteInTheModal()
+        {
+            await GetRoomPage().ClickCancelDeleteButtonAsync();
+        }
+
+        [When("I click delete button for the first non-admin participant")]
+        public async Task WhenIClickDeleteButtonForTheFirstNonAdminParticipant()
+        {
+            var participantNames = scenarioContext.Get<List<string>>("ParticipantNames");
+            var adminName = scenarioContext.Get<string>("AdminName");
+            var firstNonAdmin = participantNames.FirstOrDefault(p => p != adminName);
+            
+            if (firstNonAdmin == null)
+                throw new InvalidOperationException("No non-admin participant found");
+            
+            scenarioContext.Set(firstNonAdmin, "ParticipantToDelete");
+            await GetRoomPage().ClickDeleteButtonForParticipantAsync(firstNonAdmin);
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         }
     }
 }

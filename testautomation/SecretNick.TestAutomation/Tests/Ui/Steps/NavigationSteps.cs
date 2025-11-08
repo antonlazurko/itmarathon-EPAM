@@ -38,6 +38,16 @@ namespace Tests.Ui.Steps
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         }
 
+        [When("I navigate to room page with regular user code")]
+        public async Task WhenINavigateToRoomPageWithRegularUserCode()
+        {
+            var regularUserCode = scenarioContext.Get<string>("RegularUserCode");
+            var baseUrl = scenarioContext.Get<string>("baseUrl");
+
+            await page.GotoAsync($"{baseUrl}/room/{regularUserCode}");
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        }
+
         [When("I refresh the page")]
         public async Task WhenIRefreshThePage()
         {
