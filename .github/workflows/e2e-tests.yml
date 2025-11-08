@@ -55,9 +55,7 @@ jobs:
       - name: Install Playwright browsers
         working-directory: testautomation/SecretNick.TestAutomation/Tests
         run: |
-          pwsh bin/Debug/net*/playwright.ps1 install --with-deps chromium || true
-          dotnet build Tests.csproj -c ${{ matrix.config }} --no-restore
-          pwsh bin/Debug/net*/playwright.ps1 install --with-deps chromium
+          pwsh bin/Debug/net9.0/playwright.ps1 install --with-deps chromium
 
       - name: Run E2E tests
         working-directory: testautomation/SecretNick.TestAutomation/Tests
@@ -73,14 +71,13 @@ jobs:
         with:
           name: test-results-${{ matrix.config }}
           path: |
-            testautomation/SecretNick.TestAutomation/Tests/bin/${{ matrix.config }}/net*/reqnroll_report.html
-            testautomation/SecretNick.TestAutomation/Tests/bin/${{ matrix.config }}/net*/reqnroll-report-${{ matrix.config }}.html
+            testautomation/SecretNick.TestAutomation/Tests/bin/${{ matrix.config }}/net9.0/reqnroll_report.html
+            testautomation/SecretNick.TestAutomation/Tests/bin/${{ matrix.config }}/net9.0/reqnroll-report-${{ matrix.config }}.html
             testautomation/SecretNick.TestAutomation/Tests/TestResults/*.trx
-            testautomation/SecretNick.TestAutomation/Tests/bin/${{ matrix.config }}/net*/Screenshots/
+            testautomation/SecretNick.TestAutomation/Tests/bin/${{ matrix.config }}/net9.0/Screenshots/
           retention-days: 30
           if-no-files-found: ignore
 
       - name: Cleanup
         if: always()
         run: docker compose down -v
-
