@@ -52,13 +52,10 @@ jobs:
         working-directory: testautomation/SecretNick.TestAutomation/Tests
         run: dotnet build Tests.csproj -c ${{ matrix.config }} --no-restore
 
-      - name: Install Playwright CLI tool globally
+      - name: Install Playwright browsers (Post-build step)
+        working-directory: testautomation/SecretNick.TestAutomation/Tests
         run: |
-          dotnet tool install --global Microsoft.Playwright.CLI --version 1.55.0
-          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-
-      - name: Install Playwright browsers
-        run: playwright install chromium
+          ./bin/${{ matrix.config }}/net9.0/playwright.sh install chromium
 
       - name: Run E2E tests
         working-directory: testautomation/SecretNick.TestAutomation/Tests
@@ -74,7 +71,7 @@ jobs:
         with:
           name: test-results-${{ matrix.config }}
           path: |
-            testautomation/SecretNick.TestAutomation/Tests/bin/${{ matrix.config }}/net9.0/reqnroll_report.html
+            testautomation/SecretNick.TestAutomation/Tests/bin/${{ matrix.config }}/net9.0/reqnroll-report.html
             testautomation/SecretNick.TestAutomation/Tests/bin/${{ matrix.config }}/net9.0/reqnroll-report-${{ matrix.config }}.html
             testautomation/SecretNick.TestAutomation/Tests/TestResults/*.trx
             testautomation/SecretNick.TestAutomation/Tests/bin/${{ matrix.config }}/net9.0/Screenshots/
