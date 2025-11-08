@@ -91,3 +91,60 @@ Rule: User Retrieval
     When I get user details by ID
     Then I should see complete user information
     And I should see their gift preferences
+
+Rule: User Deletion
+
+  @positive
+  Scenario: Admin deletes a user from the room
+    Given I have a room with multiple users
+    And there is a user to delete in the room
+    When I delete the user as admin
+    Then the request should pass with status 200
+    And the user should be deleted successfully
+    And the user count should be 4
+
+  @positive
+  Scenario: Admin deletes multiple users from the room
+    Given I have a room with 5 users
+    And there is a user to delete in the room
+    When I delete the user as admin
+    And there is a user to delete in the room
+    When I delete the user as admin
+    Then the user count should be 3
+
+  @negative @authorization
+  Scenario: Regular user tries to delete another user
+    Given I have a room with multiple users
+    And I am a regular user
+    And there is a user to delete in the room
+    When I try to delete a user as a regular user
+    Then the request should fail with status 400
+    And the error should indicate that user is not an admin
+
+  @negative
+  Scenario: Admin tries to delete a non-existent user
+    Given I have a room with multiple users
+    When I try to delete a user that does not exist
+    Then the request should fail with status 404
+
+  @negative
+  Scenario: Admin tries to delete a user from another room
+    Given I have a room with multiple users
+    When I try to delete a user from another room
+    Then the request should fail with status 400
+    And the error should indicate that user cannot be deleted
+
+  @negative
+  Scenario: Admin tries to delete themselves
+    Given I have a room with multiple users
+    When I try to delete the admin user
+    Then the request should fail with status 400
+    And the error should indicate that admin cannot be deleted
+
+  @negative
+  Scenario: Admin tries to delete a user from a closed room
+    Given I have a room with multiple users
+    And there is a user to delete in the room
+    When I try to delete a user from a closed room
+    Then the request should fail with status 400
+    And the error should indicate that room is closed

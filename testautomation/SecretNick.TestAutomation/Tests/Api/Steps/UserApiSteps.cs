@@ -1,4 +1,5 @@
-﻿using Reqnroll;
+﻿using System.Linq;
+using Reqnroll;
 using Shouldly;
 using Tests.Api.Clients;
 using Tests.Api.Models.Requests;
@@ -396,6 +397,14 @@ namespace Tests.Api.Steps
             }
         }
 
+        [Then("the request should pass with status {int}")]
+        public void ThenTheRequestShouldPassWithStatus(int expectedStatus)
+        {
+            var actualStatus = _scenarioContext.Get<int>("LastStatusCode");
+            actualStatus.ShouldBe(expectedStatus);
+            actualStatus.ShouldBeInRange(200, 299, "Status should be in success range");
+        }
+
         [Then("my preferences should be updated")]
         public void ThenMyPreferencesShouldBeUpdated()
         {
@@ -410,6 +419,208 @@ namespace Tests.Api.Steps
         {
             var updatedUser = _scenarioContext.Get<UserReadDto>("UpdatedUser");
             updatedUser.WishList?.Count.ShouldBe(count);
+        }
+
+        [Given("there is a user to delete in the room")]
+        [When("there is a user to delete in the room")]
+        public async Task GivenThereIsAUserToDeleteInTheRoom()
+        {
+            var roomResponse = _scenarioContext.Get<RoomCreationResponse>();
+            var userResponse = await _apiClient.CreateUserAsync(
+                roomResponse.Room.InvitationCode!,
+                TestDataGenerator.GenerateUser());
+            
+            _scenarioContext.Set(userResponse.Id, "UserToDeleteId");
+            _scenarioContext.Set(userResponse, "UserToDelete");
+        }
+
+        [Given("I have a room with multiple users")]
+        public async Task GivenIHaveARoomWithMultipleUsers()
+        {
+            var roomRequest = new RoomCreationRequest
+            {
+                Room = TestDataGenerator.GenerateRoom(),
+                AdminUser = TestDataGenerator.GenerateUser()
+            };
+
+            var roomResponse = await _roomApiClient.CreateRoomAsync(roomRequest);
+            _scenarioContext.Set(roomResponse);
+
+            // Create 3 additional users
+            for (int i = 0; i < 3; i++)
+            {
+                await _apiClient.CreateUserAsync(
+                    roomResponse.Room.InvitationCode!,
+                    TestDataGenerator.GenerateUser());
+            }
+        }
+
+        [When("I delete the user as admin")]
+        public async Task WhenIDeleteTheUserAsAdmin()
+        {
+            var roomResponse = _scenarioContext.Get<RoomCreationResponse>();
+            var adminCode = roomResponse.UserCode;
+            var userId = _scenarioContext.Get<long>("UserToDeleteId");
+
+            await _apiClient.DeleteUserAsync(userId, adminCode!);
+            _scenarioContext.Set(200, "LastStatusCode");
+        }
+
+        [When("I try to delete the user as admin")]
+        public async Task WhenITryToDeleteTheUserAsAdmin()
+        {
+            var roomResponse = _scenarioContext.Get<RoomCreationResponse>();
+            var adminCode = roomResponse.UserCode;
+            var userId = _scenarioContext.Get<long>("UserToDeleteId");
+
+            var (statusCode, responseBody) = await _apiClient.TryDeleteUserAsync(userId, adminCode!);
+            _scenarioContext.Set(statusCode, "LastStatusCode");
+            _scenarioContext.Set(responseBody, "LastErrorBody");
+        }
+
+        [When("I try to delete a user that does not exist")]
+        public async Task WhenITryToDeleteAUserThatDoesNotExist()
+        {
+            var roomResponse = _scenarioContext.Get<RoomCreationResponse>();
+            var adminCode = roomResponse.UserCode;
+            var nonExistentUserId = 999999L;
+
+            var (statusCode, responseBody) = await _apiClient.TryDeleteUserAsync(nonExistentUserId, adminCode!);
+            _scenarioContext.Set(statusCode, "LastStatusCode");
+            _scenarioContext.Set(responseBody, "LastErrorBody");
+        }
+
+        [When("I try to delete a user from another room")]
+        public async Task WhenITryToDeleteAUserFromAnotherRoom()
+        {
+            // Create another room with a user
+            var otherRoomRequest = new RoomCreationRequest
+            {
+                Room = TestDataGenerator.GenerateRoom(),
+                AdminUser = TestDataGenerator.GenerateUser()
+            };
+            var otherRoomResponse = await _roomApiClient.CreateRoomAsync(otherRoomRequest);
+            
+            var otherUserResponse = await _apiClient.CreateUserAsync(
+                otherRoomResponse.Room.InvitationCode!,
+                TestDataGenerator.GenerateUser());
+
+            // Try to delete this user using admin code from first room
+            var roomResponse = _scenarioContext.Get<RoomCreationResponse>();
+            var adminCode = roomResponse.UserCode;
+
+            var (statusCode, responseBody) = await _apiClient.TryDeleteUserAsync(otherUserResponse.Id, adminCode!);
+            _scenarioContext.Set(statusCode, "LastStatusCode");
+            _scenarioContext.Set(responseBody, "LastErrorBody");
+        }
+
+        [When("I try to delete the admin user")]
+        public async Task WhenITryToDeleteTheAdminUser()
+        {
+            var roomResponse = _scenarioContext.Get<RoomCreationResponse>();
+            var adminCode = roomResponse.UserCode;
+            
+            // Get admin user ID from the users list
+            var users = await _apiClient.GetUsersAsync(adminCode!);
+            var adminUser = users.FirstOrDefault(u => u.IsAdmin);
+            if (adminUser == null)
+            {
+                throw new InvalidOperationException("Admin user not found");
+            }
+            var adminUserId = adminUser.Id;
+
+            var (statusCode, responseBody) = await _apiClient.TryDeleteUserAsync(adminUserId, adminCode!);
+            _scenarioContext.Set(statusCode, "LastStatusCode");
+            _scenarioContext.Set(responseBody, "LastErrorBody");
+        }
+
+        [When("I try to delete a user as a regular user")]
+        public async Task WhenITryToDeleteAUserAsARegularUser()
+        {
+            var roomResponse = _scenarioContext.Get<RoomCreationResponse>();
+            var regularUserCode = _scenarioContext.Get<string>("RegularUserCode");
+            var userId = _scenarioContext.Get<long>("UserToDeleteId");
+
+            var (statusCode, responseBody) = await _apiClient.TryDeleteUserAsync(userId, regularUserCode);
+            _scenarioContext.Set(statusCode, "LastStatusCode");
+            _scenarioContext.Set(responseBody, "LastErrorBody");
+        }
+
+        [When("I try to delete a user from a closed room")]
+        public async Task WhenITryToDeleteAUserFromAClosedRoom()
+        {
+            var roomResponse = _scenarioContext.Get<RoomCreationResponse>();
+            var adminCode = roomResponse.UserCode;
+            
+            // Close the room (draw names)
+            await _roomApiClient.DrawRoomAsync(adminCode!);
+            
+            var userId = _scenarioContext.Get<long>("UserToDeleteId");
+            var (statusCode, responseBody) = await _apiClient.TryDeleteUserAsync(userId, adminCode!);
+            _scenarioContext.Set(statusCode, "LastStatusCode");
+            _scenarioContext.Set(responseBody, "LastErrorBody");
+        }
+
+        [Then("the user should be deleted successfully")]
+        public async Task ThenTheUserShouldBeDeletedSuccessfully()
+        {
+            var roomResponse = _scenarioContext.Get<RoomCreationResponse>();
+            var adminCode = roomResponse.UserCode;
+            var userId = _scenarioContext.Get<long>("UserToDeleteId");
+
+            // Verify user is no longer in the room
+            var users = await _apiClient.GetUsersAsync(adminCode!);
+            users.ShouldNotContain(u => u.Id == userId, "User should not be in the room after deletion");
+        }
+
+        [Then("the user count should be {int}")]
+        public async Task ThenTheUserCountShouldBe(int expectedCount)
+        {
+            var roomResponse = _scenarioContext.Get<RoomCreationResponse>();
+            var adminCode = roomResponse.UserCode;
+            
+            var users = await _apiClient.GetUsersAsync(adminCode!);
+            users.Count.ShouldBe(expectedCount, $"Expected {expectedCount} users, but found {users.Count}");
+        }
+
+        [Then("the error should indicate that user is not an admin")]
+        public void ThenTheErrorShouldIndicateThatUserIsNotAnAdmin()
+        {
+            var statusCode = _scenarioContext.Get<int>("LastStatusCode");
+            statusCode.ShouldBe(400, "Should return 400 Bad Request");
+            
+            var errorBody = _scenarioContext.Get<string>("LastErrorBody");
+            errorBody.ShouldContain("not an admin");
+        }
+
+        [Then("the error should indicate that user cannot be deleted")]
+        public void ThenTheErrorShouldIndicateThatUserCannotBeDeleted()
+        {
+            var statusCode = _scenarioContext.Get<int>("LastStatusCode");
+            statusCode.ShouldBe(400, "Should return 400 Bad Request");
+            
+            var errorBody = _scenarioContext.Get<string>("LastErrorBody");
+            errorBody.ShouldNotBeNullOrEmpty("Error body should not be empty");
+        }
+
+        [Then("the error should indicate that room is closed")]
+        public void ThenTheErrorShouldIndicateThatRoomIsClosed()
+        {
+            var statusCode = _scenarioContext.Get<int>("LastStatusCode");
+            statusCode.ShouldBe(400, "Should return 400 Bad Request");
+            
+            var errorBody = _scenarioContext.Get<string>("LastErrorBody");
+            errorBody.ShouldContain("closed");
+        }
+
+        [Then("the error should indicate that admin cannot be deleted")]
+        public void ThenTheErrorShouldIndicateThatAdminCannotBeDeleted()
+        {
+            var statusCode = _scenarioContext.Get<int>("LastStatusCode");
+            statusCode.ShouldBe(400, "Should return 400 Bad Request");
+            
+            var errorBody = _scenarioContext.Get<string>("LastErrorBody");
+            errorBody.ShouldContain("admin");
         }
     }
 }

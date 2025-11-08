@@ -1,0 +1,97 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e-tests:
+    name: Run E2E Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        config: [React_Headless]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          PSQL_USER=test_user
+          PSQL_PASSWORD=test_password
+          PSQL_DB=itm_test
+          CONNECTIONSTRINGS__DBCONNECTIONSTRING=Host=db;Port=5432;Database=itm_test;Username=test_user;Password=test_password
+          EOF
+
+      - name: Start Docker services
+        run: |
+          docker compose up -d
+          echo "Waiting for services to start..."
+          sleep 30
+
+      - name: Wait for API
+        run: |
+          timeout 120 bash -c 'until curl -f http://localhost:8080/health; do sleep 2; done'
+
+      - name: Restore dependencies
+        working-directory: testautomation/SecretNick.TestAutomation/Tests
+        run: dotnet restore Tests.csproj
+
+      - name: Build tests
+        working-directory: testautomation/SecretNick.TestAutomation/Tests
+        run: dotnet build Tests.csproj -c ${{ matrix.config }} --no-restore
+
+      - name: Install Playwright browsers (Using .ps1)
+        run: |
+          sudo apt-get update && sudo apt-get install -y powershell
+
+          PROJECT_DIR="testautomation/SecretNick.TestAutomation/Tests"
+          CONFIG_DIR="${{ matrix.config }}"
+          TARGET_FRAMEWORK="net9.0"
+          PLAYWRIGHT_PS_SCRIPT="$PROJECT_DIR/bin/$CONFIG_DIR/$TARGET_FRAMEWORK/playwright.ps1"
+
+          echo "Looking for Playwright PS script at: $PLAYWRIGHT_PS_SCRIPT"
+
+          if [ -f "$PLAYWRIGHT_PS_SCRIPT" ]; then
+            echo "Script found. Running installation via pwsh..."
+            pwsh "$PLAYWRIGHT_PS_SCRIPT" install chromium
+          else
+            echo "::error file=$PLAYWRIGHT_PS_SCRIPT::Playwright PS script was NOT FOUND. Review the build output."
+            exit 1
+          fi
+
+      - name: Run E2E tests
+        working-directory: testautomation/SecretNick.TestAutomation/Tests
+        run: |
+          dotnet test Tests.csproj -c ${{ matrix.config }} --no-build \
+            --logger "trx;LogFileName=test-results-${{ matrix.config }}.trx" \
+            --logger "html;LogFileName=reqnroll-report-${{ matrix.config }}.html"
+        continue-on-error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.config }}
+          path: |
+            testautomation/SecretNick.TestAutomation/Tests/bin/${{ matrix.config }}/net9.0/reqnroll-report.html
+            testautomation/SecretNick.TestAutomation/Tests/bin/${{ matrix.config }}/net9.0/reqnroll-report-${{ matrix.config }}.html
+            testautomation/SecretNick.TestAutomation/Tests/TestResults/*.trx
+            testautomation/SecretNick.TestAutomation/Tests/bin/${{ matrix.config }}/net9.0/Screenshots/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
