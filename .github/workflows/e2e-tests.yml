@@ -52,25 +52,23 @@ jobs:
         working-directory: testautomation/SecretNick.TestAutomation/Tests
         run: dotnet build Tests.csproj -c ${{ matrix.config }} --no-restore
 
-      - name: Install Playwright browsers (Reliable method)
+      - name: Install Playwright browsers (Using .ps1)
         run: |
+          sudo apt-get update && sudo apt-get install -y powershell
+
           PROJECT_DIR="testautomation/SecretNick.TestAutomation/Tests"
           CONFIG_DIR="${{ matrix.config }}"
-          TARGET_FRAMEWORK="net9.0" # Проверьте, что это соответствует вашему .csproj
-          PLAYWRIGHT_SCRIPT="$PROJECT_DIR/bin/$CONFIG_DIR/$TARGET_FRAMEWORK/playwright.sh"
+          TARGET_FRAMEWORK="net9.0"
+          PLAYWRIGHT_PS_SCRIPT="$PROJECT_DIR/bin/$CONFIG_DIR/$TARGET_FRAMEWORK/playwright.ps1"
 
-          echo "Looking for Playwright script at: $PLAYWRIGHT_SCRIPT"
+          echo "Looking for Playwright PS script at: $PLAYWRIGHT_PS_SCRIPT"
 
-          if [ -f "$PLAYWRIGHT_SCRIPT" ]; then
-            echo "Script found. Running installation..."
-            # Запуск скрипта через bash для совместимости с Ubuntu
-            bash "$PLAYWRIGHT_SCRIPT" install chromium
+          if [ -f "$PLAYWRIGHT_PS_SCRIPT" ]; then
+            echo "Script found. Running installation via pwsh..."
+            pwsh "$PLAYWRIGHT_PS_SCRIPT" install chromium
           else
-            echo "::error file=$PLAYWRIGHT_SCRIPT::Playwright script was NOT FOUND. Check build output and TargetFramework."
-            echo "---"
-            echo "Debugging: Listing files in $PROJECT_DIR/bin/$CONFIG_DIR/$TARGET_FRAMEWORK/"
-            ls -al "$PROJECT_DIR/bin/$CONFIG_DIR/$TARGET_FRAMEWORK/"
-            exit 1 # Критическая ошибка: останавливаем рабочий процесс
+            echo "::error file=$PLAYWRIGHT_PS_SCRIPT::Playwright PS script was NOT FOUND. Review the build output."
+            exit 1
           fi
 
       - name: Run E2E tests
