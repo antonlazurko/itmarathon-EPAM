@@ -55,7 +55,8 @@ jobs:
       - name: Install Playwright browsers
         working-directory: testautomation/SecretNick.TestAutomation/Tests
         run: |
-          pwsh bin/Debug/net9.0/playwright.ps1 install --with-deps chromium
+          dotnet build Tests.csproj -c ${{ matrix.config }} --no-restore
+          dotnet exec ./bin/Debug/net9.0/SecretNick.TestAutomation.dll install
 
       - name: Run E2E tests
         working-directory: testautomation/SecretNick.TestAutomation/Tests
