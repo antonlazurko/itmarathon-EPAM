@@ -38,30 +38,41 @@ runs:
         aws-access-key-id: ${{ inputs.aws-access-key-id }}
         aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
         aws-region: ${{ inputs.aws-region }}
-   
-    - name: set backend url
+
+    - name: Determine BASE_API_URL
       if: ${{ inputs.microservice == 'react' || inputs.microservice == 'angular' }}
       shell: bash
       run: |
         echo "Determining BASE_API_URL..."
 
         DOMAIN_NAME=$(grep -Po '^\s*domain_name\s*=\s*"\K[^"]+' terraform/terraform.tfvars || echo "marathon2025.pp.ua")
-        echo "got: $DOMAIN_NAME"
+        echo "Got domain name: $DOMAIN_NAME"
 
         ALB_DNS=$(aws elbv2 describe-load-balancers \
                             --region ${{ inputs.aws-region }} \
                             --query "LoadBalancers[0].DNSName" \
                             --output text || echo "localhost:8080")
-        echo "got: $ALB_DNS"
+        echo "Got ALB DNS: $ALB_DNS"
 
         TEMP_URL="https://backend.${DOMAIN_NAME}"
-        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "${TEMP_URL}/api/system/info" || true)
 
-        if [[ "$RESPONSE" == "200" ]] ; then
-          BASE_API_URL="$TEMP_URL"
-        else
-          BASE_API_URL="http://${ALB_DNS}"
-        fi
+        TIMEOUT=120   # sec
+        INTERVAL=5
+        ELAPSED=0
+        while true; do
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "${TEMP_URL}/api/system/info" || true)
+            if [[ "$RESPONSE" == "200" ]]; then
+                BASE_API_URL="$TEMP_URL"
+                break
+            fi
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+            if [[ $ELAPSED -ge $TIMEOUT ]]; then
+                echo "Backend not reachable, falling back to ALB DNS"
+                BASE_API_URL="http://${ALB_DNS}"
+                break
+            fi
+        done
 
         echo "BASE_API_URL=$BASE_API_URL"
         echo "BASE_API_URL=$BASE_API_URL" >> $GITHUB_ENV
