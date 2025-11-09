@@ -23,7 +23,7 @@
 | <a name="input_ec2_associate_public_ip_address"></a> [associate\_public\_ip\_address](#input\_associate\_public\_ip\_address) | Whether to associate a public IP address with an instance in a VPC  | `bool` | null | no |
 | <a name="input_ec2_availability_zone"></a> [availability\_zone](#input\_availability\_zone) | AZ to start the instance in | `string` | null | no |
 | <a name="input_ec2_iam_instance_profile"></a> [iam\_instance\_profile](#input\_iam\_instance\_profile) | IAM Instance Profile to launch the instance with. Specified as the name of the Instance Profile | `string` | null | yes |
-| <a name="input_ec2_instance_type"></a> [instance\_type](#input\_instance\_type) | The type of instance to start | `string` | t2.micro | yes |
+| <a name="input_ec2_instance_type"></a> [instance\_type](#input\_instance\_type) | The type of instance to start | `string` | t3.micro | yes |
 | <a name="input_ec2_name"></a> [name](#input\_name) | Name to be used on EC2 instance created | `string` | null | no |
 | <a name="input_ec2_sg_ids"></a> [security\_groups\_ids](#input\_security\_groups\_ids) | Security Groups ids from Security Group module | `list(string)` | empty | yes |
 | <a name="input_ec2_subnet"></a> [subnet](#input\_subnet) | Subnet id from the VPC module | `string` | empty | yes |

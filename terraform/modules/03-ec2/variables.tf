@@ -36,7 +36,7 @@ variable "iam_instance_profile" {
 variable "instance_type" {
   description = "The type of instance to start"
   type        = string
-  default     = "t2.micro"
+  default     = "t3.micro"
 }
 
 variable "ec2_name" {
@@ -128,6 +128,30 @@ variable "web_backend_port" {
   description = "Port for the web backend service"
   type        = number
   default     = 8080
+}
+
+variable "prometheus_port" {
+  description = "Port for Prometheus service"
+  type        = number
+  default     = 9090
+}
+
+variable "grafana_port" {
+  description = "Port for Grafana service"
+  type        = number
+  default     = 3001
+}
+
+variable "node_exporter_port" {
+  description = "Port for Node Exporter service"
+  type        = number
+  default     = 9100
+}
+
+variable "ports" {
+  description = "List of ports that should be allowed on this EC2"
+  type        = list(number)
+  default     = []
 }
 
 variable "port" {
