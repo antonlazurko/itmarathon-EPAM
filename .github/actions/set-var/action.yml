@@ -15,11 +15,11 @@ inputs:
 
   aws-secret-access-key:
     description: "AWS Secret Access Key"
-    required: true    
+    required: true
 
   aws-region:
     description: "AWS Region"
-    required: true    
+    required: true
 
 runs:
   using: "composite"
@@ -38,7 +38,7 @@ runs:
         aws-access-key-id: ${{ inputs.aws-access-key-id }}
         aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
         aws-region: ${{ inputs.aws-region }}
-   
+
     - name: set backend url
       if: ${{ inputs.microservice == 'react' || inputs.microservice == 'angular' }}
       shell: bash
@@ -55,13 +55,7 @@ runs:
         echo "got: $ALB_DNS"
 
         TEMP_URL="https://backend.${DOMAIN_NAME}"
-        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "${TEMP_URL}/api/system/info" || true)
-
-        if [[ "$RESPONSE" == "200" ]] ; then
-          BASE_API_URL="$TEMP_URL"
-        else
-          BASE_API_URL="http://${ALB_DNS}"
-        fi
+        BASE_API_URL="$TEMP_URL"
 
         echo "BASE_API_URL=$BASE_API_URL"
         echo "BASE_API_URL=$BASE_API_URL" >> $GITHUB_ENV
