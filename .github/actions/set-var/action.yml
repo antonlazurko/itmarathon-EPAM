@@ -15,11 +15,11 @@ inputs:
 
   aws-secret-access-key:
     description: "AWS Secret Access Key"
-    required: true    
+    required: true
 
   aws-region:
     description: "AWS Region"
-    required: true    
+    required: true
 
 runs:
   using: "composite"
@@ -55,24 +55,7 @@ runs:
         echo "Got ALB DNS: $ALB_DNS"
 
         TEMP_URL="https://backend.${DOMAIN_NAME}"
-
-        TIMEOUT=120   # sec
-        INTERVAL=5
-        ELAPSED=0
-        while true; do
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "${TEMP_URL}/api/system/info" || true)
-            if [[ "$RESPONSE" == "200" ]]; then
-                BASE_API_URL="$TEMP_URL"
-                break
-            fi
-            sleep $INTERVAL
-            ELAPSED=$((ELAPSED + INTERVAL))
-            if [[ $ELAPSED -ge $TIMEOUT ]]; then
-                echo "Backend not reachable, falling back to ALB DNS"
-                BASE_API_URL="http://${ALB_DNS}"
-                break
-            fi
-        done
+        BASE_API_URL="$TEMP_URL"
 
         echo "BASE_API_URL=$BASE_API_URL"
         echo "BASE_API_URL=$BASE_API_URL" >> $GITHUB_ENV
@@ -89,7 +72,7 @@ runs:
         echo "CONTEXT=frontend/react" >> $GITHUB_ENV
         echo "DOCKERFILE=frontend/react/Dockerfile" >> $GITHUB_ENV
         echo "REPO=${{ inputs.docker_hub_username }}/react" >> $GITHUB_ENV
-        
+
         echo "Updating BASE_API_URL in React project"
         jq --arg url "$BASE_API_URL" '.environment.backendApiUrl = $url' frontend/react/config.json > tmp.config.json && mv tmp.config.json frontend/react/config.json
         cat frontend/react/config.json
@@ -120,7 +103,7 @@ runs:
         echo "CONTEXT=backend/ApiService" >> $GITHUB_ENV
         echo "DOCKERFILE=backend/ApiService/Dockerfile" >> $GITHUB_ENV
         echo "REPO=${{ inputs.docker_hub_username }}/dotnet" >> $GITHUB_ENV
-    
+
     - name: Set Grafana Environment
       if: ${{ inputs.microservice == 'grafana' }}
       shell: bash
